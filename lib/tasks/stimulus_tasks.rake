@@ -55,4 +55,11 @@ namespace :stimulus do
       Stimulus::Manifest.write_index_from(Rails.root.join("app/javascript/controllers"))
     end
   end
+
+  namespace :lazy_manifest do
+    desc "Update the Stimulus manifest, using a config hash (will overwrite controllers/index.js)"
+    task :update do
+      Stimulus::Manifest.write_index_from(Rails.root.join("app/javascript/controllers"), :config_hash)
+    end
+  end
 end
