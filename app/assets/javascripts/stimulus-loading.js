@@ -36,26 +36,28 @@ function registerControllerFromPath(path, under, application) {
 
 // Lazy load controllers registered beneath the `under` path in the import map to the passed application instance.
 export function lazyLoadControllersFrom(under, application, element = document) {
-  lazyLoadExistingControllers(under, application, element)
-  lazyLoadNewControllers(under, application, element)
+  const loadFn = controllerName => loadControllerBasedOnFilename(controllerName, under, application)
+  lazyLoadExistingControllers(under, application, element, loadFn)
+  lazyLoadNewControllers(under, application, element, loadFn)
 }
 
-function lazyLoadExistingControllers(under, application, element) {
-  queryControllerNamesWithin(element).forEach(controllerName => loadController(controllerName, under, application))
+function lazyLoadExistingControllers(element, loadFn) {
+  queryControllerNamesWithin(element).forEach(loadFn)
 }
 
-function lazyLoadNewControllers(under, application, element) {
+function lazyLoadNewControllers(element, loadFn) {
   new MutationObserver((mutationsList) => {
     for (const { attributeName, target, type } of mutationsList) {
       switch (type) {
         case "attributes": {
-          if (attributeName == controllerAttribute && target.getAttribute(controllerAttribute)) {
-            extractControllerNamesFrom(target).forEach(controllerName => loadController(controllerName, under, application))
+          if (attributeName === controllerAttribute && target.getAttribute(controllerAttribute)) {
+            extractControllerNamesFrom(target).forEach(loadFn)
           }
+          break
         }
 
         case "childList": {
-          lazyLoadExistingControllers(under, application, target)
+          lazyLoadExistingControllers(target, loadFn)
         }
       }
     }
@@ -70,9 +72,13 @@ function extractControllerNamesFrom(element) {
   return element.getAttribute(controllerAttribute).split(/\s+/).filter(content => content.length)
 }
 
-function loadController(name, under, application) {
+function loadControllerBasedOnFilename(name, under, application) {
+  loadController(name, application, () => import(controllerFilename(name, under)))
+}
+
+function loadController(name, application, importFn) {
   if (canRegisterController(name, application)) {
-    import(controllerFilename(name, under))
+    importFn()
       .then(module => registerController(name, module, application))
       .catch(error => console.error(`Failed to autoload controller: ${name}`, error))
   }
@@ -90,4 +96,16 @@ function registerController(name, module, application) {
 
 function canRegisterController(name, application){
   return !application.router.modulesByIdentifier.has(name)
+}
+
+export function lazyLoadControllersFromConfig(config, application, element = document) {
+  const loadFn = (controllerName) => {
+    const importFn = config[controllerName]
+    if (importFn) {
+      loadController(controllerName, application, importFn)
+    }
+  }
+
+  lazyLoadExistingControllers(element, loadFn)
+  lazyLoadNewControllers(element, loadFn)
 }
