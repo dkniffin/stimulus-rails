@@ -112,7 +112,7 @@ With an import-mapped application, controllers are automatically pinned and regi
 
 By default, your application will be setup to eager load all the controllers mentioned in your import map under "controllers". This works well together with preloading in the import map when you have a modest number of controllers.
 
-If you have a lot of controllers, you may well want to lazy load them instead. This can be done by changing from `eagerLoadControllersFrom` to `lazyLoadControllersFrom` in your `app/javascript/controllers/index.js` file.
+If you have a lot of controllers, you may well want to lazy load them instead. With importmap, this can be done by changing from `eagerLoadControllersFrom` to `lazyLoadControllersFrom` in your `app/javascript/controllers/index.js` file.
 
 When lazy loading, controllers are not loaded until their data-controller identifier is encountered in the DOM.
 
@@ -139,6 +139,21 @@ export default class extends Controller {
 }
 ```
 
+If you have a lot of controllers, you may well want to lazy load them instead. When lazy loading, controllers are not loaded until their data-controller identifier is encountered in the DOM.
+
+With a JS bundler, this can be done by using the `lazyLoadControllersFromConfig` function from `@hotwired/stimulus-loading`:
+
+```javascript
+// controllers/index.js
+import { application } from "./application"
+
+import { lazyLoadControllersFromConfig } from "@hotwired/stimulus-loading"
+lazyLoadControllersFromConfig({
+  "hello": () => import("./hello_controller"),
+}, application)
+```
+
+There is also a dedicated `stimulus:lazy_manifest:update` task for generating the `controllers/index.js` file for you.
 
 ## License
 
